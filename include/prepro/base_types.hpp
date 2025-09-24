@@ -19,14 +19,14 @@ using Hideset = std::unordered_set<std::string>;
 
 // FileInfo
 namespace c11::prepro {
-struct Fileinfo {
+struct FileInfo {
     std::string name;
     std::string display_name;
     size_t line_number{0};
     size_t line_offset{0};
     size_t file_number{0};
 
-    Fileinfo(std::string name, std::string display_name, const size_t line_number,
+    FileInfo(std::string name, std::string display_name, const size_t line_number,
              const size_t file_number) : name(std::move(name)), display_name(std::move(display_name)),
                                          line_number(line_number), file_number(file_number) {}
 };
@@ -74,7 +74,7 @@ public:
     TokenKind kind{TokenKind::TK_EOF};
     std::string_view src;
     size_t length{0};
-    std::shared_ptr<Fileinfo> file;
+    std::shared_ptr<FileInfo> file;
     Hideset hideset;
     std::shared_ptr<Type> type;
     std::string string_value;
@@ -82,7 +82,7 @@ public:
     std::shared_ptr<Token> next;
 
     static std::shared_ptr<Token> create(const TokenKind kind, const std::string_view src, const size_t length,
-                                         std::shared_ptr<Fileinfo> file) {
+                                         std::shared_ptr<FileInfo> file) {
         auto token = std::make_shared<Token>();
         token->kind = kind;
         token->src = src;
@@ -91,7 +91,7 @@ public:
         return token;
     }
 
-    static std::shared_ptr<Token> create_eof(std::shared_ptr<Fileinfo> file) {
+    static std::shared_ptr<Token> create_eof(std::shared_ptr<FileInfo> file) {
         return create(TokenKind::TK_EOF, "", 0, std::move(file));
     }
 
@@ -117,7 +117,7 @@ public:
         return this->kind == TokenKind::TK_IDENT && src.compare(0, this->length, target) == 0;
     }
 
-    const std::shared_ptr<Fileinfo> &get_file() const {
+    const std::shared_ptr<FileInfo> &get_file() const {
         if (!file) throw std::runtime_error("Token has no file info!");
         return this->file;
     }
