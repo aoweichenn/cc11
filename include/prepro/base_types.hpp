@@ -156,7 +156,7 @@ public:
     ErrorHandler &operator=(ErrorHandler &&) = delete;
 
 public:
-    static void error(const Token &token, const std::string &msg) {
+    void error(const Token &token, const std::string &msg) {
         const auto &file = token.get_file();
         // TODO: (file->line_number + file->line_offset) => ???
         std::cerr << "[ERROR] [" << file->name << ": " << (file->line_number + file->line_offset) << "] " << msg <<
@@ -164,7 +164,7 @@ public:
         throw std::runtime_error(msg);
     }
 
-    static void warn(const Token &token, const std::string &msg) {
+    void warn(const Token &token, const std::string &msg) {
         const auto &file = token.get_file();
         // TODO: (file->line_number + file->line_offset) => ???
         std::cerr << "[WARNING] [" << file->name << ": " << (file->line_number + file->line_offset) << "] " << msg <<
