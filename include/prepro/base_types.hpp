@@ -5,6 +5,7 @@
 #ifndef CC11_PREPRO_BASE_TYPES_HPP
 #define CC11_PREPRO_BASE_TYPES_HPP
 
+#include <iostream>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -127,6 +128,8 @@ public:
     }
 };
 
+using TokenPointer = std::shared_ptr<Token>;
+
 class TokenVistor {
 public:
     virtual ~TokenVistor() = default;
@@ -138,4 +141,38 @@ public:
 };
 }
 
+// ErrorHandle
+namespace c11::prepro {
+class ErrorHandler {
+public:
+    inline static ErrorHandler &get_instance() {
+        static ErrorHandler instance;
+        return instance;
+    }
+
+    ErrorHandler(const ErrorHandler &) = delete;
+    ErrorHandler(ErrorHandler &&) = delete;
+    ErrorHandler &operator=(const ErrorHandler &) = delete;
+    ErrorHandler &operator=(ErrorHandler &&) = delete;
+
+public:
+    static void error(const Token &token, const std::string &msg) {
+        const auto &file = token.get_file();
+        // TODO: (file->line_number + file->line_offset) => ???
+        std::cerr << "[ERROR] [" << file->name << ": " << (file->line_number + file->line_offset) << "] " << msg <<
+                "\n";
+        throw std::runtime_error(msg);
+    }
+
+    static void warn(const Token &token, const std::string &msg) {
+        const auto &file = token.get_file();
+        // TODO: (file->line_number + file->line_offset) => ???
+        std::cerr << "[WARNING] [" << file->name << ": " << (file->line_number + file->line_offset) << "] " << msg <<
+                "\n";
+    }
+
+private:
+    ErrorHandler() = default;
+};
+}
 #endif //CC11_PREPRO_BASE_TYPES_HPP
