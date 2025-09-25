@@ -5,6 +5,7 @@
 #ifndef CC11_PREPRO_BASE_TYPES_HPP
 #define CC11_PREPRO_BASE_TYPES_HPP
 
+#include <filesystem>
 #include <iostream>
 #include <memory>
 #include <stdexcept>
@@ -14,6 +15,7 @@
 
 // 定义别名
 namespace c11::prepro {
+namespace fs = std::filesystem;
 using Hideset = std::unordered_set<std::string>;
 }
 
