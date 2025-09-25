@@ -73,7 +73,7 @@ enum class TokenKind {
 class Token {
 public:
     TokenKind kind{TokenKind::TK_EOF};
-    std::string_view src;
+    std::string_view raw_chars;
     size_t length{0};
     std::shared_ptr<FileInfo> file;
     Hideset hideset;
@@ -86,7 +86,7 @@ public:
                                          std::shared_ptr<FileInfo> file) {
         auto token = std::make_shared<Token>();
         token->kind = kind;
-        token->src = src;
+        token->raw_chars = src;
         token->length = length;
         token->file = std::move(file);
         return token;
@@ -99,7 +99,7 @@ public:
     std::shared_ptr<Token> copy() const {
         auto new_token = std::make_shared<Token>();
         new_token->kind = this->kind;
-        new_token->src = this->src;
+        new_token->raw_chars = this->raw_chars;
         new_token->length = this->length;
         new_token->file = this->file;
         new_token->hideset = this->hideset;
@@ -115,7 +115,7 @@ public:
     }
 
     bool equals(const std::string_view target) const {
-        return this->kind == TokenKind::TK_IDENT && src.compare(0, this->length, target) == 0;
+        return this->kind == TokenKind::TK_IDENT && raw_chars.compare(0, this->length, target) == 0;
     }
 
     const std::shared_ptr<FileInfo> &get_file() const {

@@ -123,7 +123,7 @@ public:
                 tk->kind = TokenKind::TK_NUM;
                 tk->value = 0;
                 tk->type = Type::create_basic_type(TypeKind::TY_INT, 4);
-                tk->src = "0";
+                tk->raw_chars = "0";
                 tk->length = 1;
             }
         }

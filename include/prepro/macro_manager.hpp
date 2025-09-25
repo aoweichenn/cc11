@@ -106,7 +106,7 @@ public:
                     ErrorHandler::get_instance().error(*token, "# must be followed by macro parameter!");
                 }
                 const auto &param_token = body[i + 1];
-                std::string param_name(param_token->src.substr(0, param_token->length));
+                std::string param_name(param_token->raw_chars.substr(0, param_token->length));
                 auto arg_it = arg_map.find(param_name);
                 if (arg_it == arg_map.end()) {
                     ErrorHandler::get_instance().error(*param_token, "# not followed by valid parameter!");
@@ -142,7 +142,7 @@ public:
             }
             // 普通参数替换
             if (token->kind == TokenKind::TK_IDENT) {
-                std::string param_name(token->src.substr(0, token->length));
+                std::string param_name(token->raw_chars.substr(0, token->length));
                 auto arg_it = arg_map.find(param_name);
                 if (arg_it != arg_map.end()) {
                     for (const auto &arg_token: arg_it->second->tokens) {
@@ -165,7 +165,7 @@ private:
     [[nodiscard]] TokenPointer stringize(const Token &hash_token, const std::vector<TokenPointer> &arg_tokens) const {
         std::string buffer;
         for (const auto &token: arg_tokens) {
-            buffer.append(token->src.data(), token->length);
+            buffer.append(token->raw_chars.data(), token->length);
         }
         std::string string_with_quotes = "\"" + buffer + "\"";
         auto string_token = Token::create(
@@ -181,8 +181,8 @@ private:
 
     [[nodiscard]] TokenPointer paste(const Token &lhs, const Token &rhs) const {
         std::string buffer;
-        buffer.append(lhs.src.data(), lhs.length);
-        buffer.append(rhs.src.data(), rhs.length);
+        buffer.append(lhs.raw_chars.data(), lhs.length);
+        buffer.append(rhs.raw_chars.data(), rhs.length);
         auto paste_token = Token::create(
             TokenKind::TK_IDENT,
             std::string_view(buffer),
@@ -247,7 +247,7 @@ public:
     // 根据令牌查询宏
     MacroPointer find_macro(const TokenPointer &token) const {
         if (token->kind != TokenKind::TK_IDENT) return nullptr;
-        const std::string macro_name(token->src.substr(0, token->length));
+        const std::string macro_name(token->raw_chars.substr(0, token->length));
         const auto it = this->macros.find(macro_name);
         return it != this->macros.end() ? it->second : nullptr;
     }
