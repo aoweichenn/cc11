@@ -17,6 +17,7 @@ add_library(cc11s STATIC
         include/prepro/macro_manager.hpp
         include/prepro/conditional_manager.hpp
         include/prepro/include_manager.hpp
+        include/prepro/command.hpp
 )
 
 add_executable(cc11
@@ -25,6 +26,7 @@ add_executable(cc11
         include/prepro/macro_manager.hpp
         include/prepro/conditional_manager.hpp
         include/prepro/include_manager.hpp
+        include/prepro/command.hpp
 )
 target_link_libraries(cc11 cc11s)
 

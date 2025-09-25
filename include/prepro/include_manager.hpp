@@ -126,6 +126,17 @@ public:
         return {};
     }
 
+    // 跳过当前行剩余令牌（处理 #include 后的多余令牌）TODO: 完善逻辑
+    TokenPointer skip_lines(TokenPointer token) const {
+        if (!token) return nullptr;
+        // 跳过直到行尾（简化：直到遇到 # 或者 EOF）
+        while (token && !token->is_hash() && token->kind != TokenKind::TK_EOF) {
+            ErrorHandler::get_instance().warn(*token, "extra token after #include filename");
+            token = token->next;
+        }
+        return token;
+    }
+
 private:
     // 搜索标砖包含路径（按照顺序查找，缓存结果）
     fs::path search_include_path(const fs::path &filename) {
@@ -186,17 +197,6 @@ private:
             ++temp_it;
         }
         return found_endif ? guard_name : "";
-    }
-
-    // 跳过当前行剩余令牌（处理 #include 后的多余令牌）TODO: 完善逻辑
-    TokenPointer skip_lines(TokenPointer token) const {
-        if (!token) return nullptr;
-        // 跳过直到行尾（简化：直到遇到 # 或者 EOF）
-        while (token && !token->is_hash() && token->kind != TokenKind::TK_EOF) {
-            ErrorHandler::get_instance().warn(*token, "extra token after #include filename");
-            token = token->next;
-        }
-        return token;
     }
 
 private:
