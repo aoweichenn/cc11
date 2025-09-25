@@ -15,12 +15,14 @@ add_library(cc11s STATIC
         main.cpp
         include/prepro/base_types.hpp
         include/prepro/macro_manager.hpp
+        include/prepro/conditional_manager.hpp
 )
 
 add_executable(cc11
         main.cpp
         include/prepro/base_types.hpp
         include/prepro/macro_manager.hpp
+        include/prepro/conditional_manager.hpp
 )
 target_link_libraries(cc11 cc11s)
 
