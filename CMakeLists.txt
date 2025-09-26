@@ -13,32 +13,22 @@ include_directories(include)
 
 add_library(cc11s STATIC
         main.cpp
-        include/prepro/base_types.hpp
-        include/prepro/macro_manager.hpp
-        include/prepro/conditional_manager.hpp
-        include/prepro/include_manager.hpp
-        include/prepro/command.hpp
-        include/prepro/preprocessor.hpp
+        include/prepro/lru_cache.hpp
 )
 
 add_executable(cc11
         main.cpp
-        include/prepro/base_types.hpp
-        include/prepro/macro_manager.hpp
-        include/prepro/conditional_manager.hpp
-        include/prepro/include_manager.hpp
-        include/prepro/command.hpp
-        include/prepro/preprocessor.hpp
+        include/prepro/lru_cache.hpp
 )
 target_link_libraries(cc11 cc11s)
 
-## 查找已安装的GTest包
-#find_package(GTest REQUIRED)
-#if (GTest_FOUND)
-#    message(STATUS "Found GTest: ${GTEST_VERSION}")
-#else ()
-#    message(FATAL_ERROR "GTest not found. Please install GTest development package.")
-#endif ()
+# 查找已安装的GTest包
+find_package(GTest REQUIRED)
+if (GTest_FOUND)
+    message(STATUS "Found GTest: ${GTEST_VERSION}")
+else ()
+    message(FATAL_ERROR "GTest not found. Please install GTest development package.")
+endif ()
 
 ## 启用测试
 #enable_testing()
