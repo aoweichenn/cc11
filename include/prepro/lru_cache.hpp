@@ -14,6 +14,7 @@
 
 // 通用 LRU 缓存模板，考虑到了线程安全
 namespace c11::prepro {
+// 通用 LRU 缓存模板，考虑到了线程安全
 template<typename Key, typename Value>
 class LRUCache {
 public:

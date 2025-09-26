@@ -22,33 +22,27 @@ add_executable(cc11
 )
 target_link_libraries(cc11 cc11s)
 
-# 查找已安装的GTest包
+# 2. 查找已安装的GTest包，并集成 gtest
 find_package(GTest REQUIRED)
+include_directories(${GTEST_INCLUDE_DIRS})
 if (GTest_FOUND)
     message(STATUS "Found GTest: ${GTEST_VERSION}")
 else ()
     message(FATAL_ERROR "GTest not found. Please install GTest development package.")
 endif ()
 
+# 3. 编译测试文件
+file(GLOB_RECURSE TEST_SOURCES tests/*.cpp)
+add_executable(cc11_tests ${TEST_SOURCES})
+# 链接测试库
+target_link_libraries(cc11_tests
+        cc11s
+        GTest::gtest_main
+        GTest::gmock_main
+)
+
 # 启用测试
 enable_testing()
-
-## 添加测试目标
-#add_executable(pocom_tests
-#)
-#
-## 链接测试库
-#target_link_libraries(pocom_tests
-#        pocoms
-#        GTest::gtest_main
-#        GTest::gmock_main
-#)
-#
-## 添加包含目录
-#target_include_directories(pocom_tests PRIVATE
-#        include
-#)
-#
-## 添加测试到CTest
+# 添加测试到CTest
 #include(GoogleTest)
-#gtest_discover_tests(pocom_tests)
+#gtest_discover_tests(cc11_tests)
