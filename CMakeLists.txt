@@ -44,5 +44,5 @@ target_link_libraries(cc11_tests
 # 启用测试
 enable_testing()
 # 添加测试到CTest
-#include(GoogleTest)
-#gtest_discover_tests(cc11_tests)
+include(GoogleTest)
+gtest_discover_tests(cc11_tests)
