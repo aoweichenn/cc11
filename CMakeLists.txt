@@ -30,12 +30,11 @@ else ()
     message(FATAL_ERROR "GTest not found. Please install GTest development package.")
 endif ()
 
-## 启用测试
-#enable_testing()
-#
+# 启用测试
+enable_testing()
+
 ## 添加测试目标
 #add_executable(pocom_tests
-#        tests/c11/lexer/test_scanner.cpp
 #)
 #
 ## 链接测试库
