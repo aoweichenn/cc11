@@ -136,63 +136,67 @@ public:
 // 令牌类
 class Token : public std::enable_shared_from_this<Token> {
 public:
-    TokenKind kind;                 // Token 类型
-    std::string_view raw_chars;     // Token 的原始字符
-    std::uint32_t length;           // 令牌长度（字节为单位）
-    HideSet hideset;                // 隐藏宏集合（避免宏递归）
-    TypePtr type;                   // 数据类型（仅对 NUM/STR 有效）
-    std::string string_value;       // 字符串内容（仅对 TK_STR 有效）
-    std::int64_t value;             // 数值（仅对 TK_NUM/TK_PP_NUM 有效）
-    std::unique_ptr<FileInfo> file; // 所属文件信息（使用unique_ptr管理）
-    std::shared_ptr<Token> next;    // 下一个令牌（构建令牌链表）
+    TokenKind kind;              // Token 类型
+    std::string_view raw_chars;  // Token 的原始字符
+    std::uint32_t length;        // 令牌长度（字节为单位）
+    HideSet hideset;             // 隐藏宏集合（避免宏递归）
+    TypePtr type;                // 数据类型（仅对 NUM/STR 有效）
+    std::string string_value;    // 字符串内容（仅对 TK_STR 有效）
+    std::int64_t value;          // 数值（仅对 TK_NUM/TK_PP_NUM 有效）
+    FileInfoPtr file;            // 所属文件信息（改为shared_ptr共享）
+    std::shared_ptr<Token> next; // 下一个令牌（链表结构，保持shared）
 
 public:
-    // 禁止拷贝构造和赋值
+    // 禁止拷贝构造和赋值（通过智能指针管理共享，无需直接拷贝）
     Token(const Token &) = delete;
     Token &operator=(const Token &) = delete;
 
-    // 创建普通令牌
+    // 对外提供默认FileInfo的shared_ptr（公共接口用共享）
+    static FileInfoPtr get_default_file_info() {
+        return create_default_file_info();
+    }
+
+    // 创建普通令牌（参数改用shared_ptr，支持共享文件信息）
     static std::shared_ptr<Token> create(const TokenKind kind,
                                          const std::string_view raw_chars,
                                          const std::uint32_t length,
-                                         std::unique_ptr<FileInfo> file) {
-        // 直接使用new构造，立即传递给shared_ptr，无中间步骤，实际不会泄漏
-        // 虽然编译器可能警告，但这是最安全的无友元方案
+                                         const FileInfoPtr &file = nullptr) {
+        // 默认为空，自动用默认文件
         std::shared_ptr<Token> token(new Token());
         token->kind = kind;
         token->raw_chars = raw_chars;
         token->length = length;
-        token->file = file ? std::move(file) : create_default_file_info();
+        // 若file为空，使用默认文件信息（shared_ptr）
+        token->file = file ? file : create_default_file_info();
         token->next = nullptr;
         token->value = 0;
         return token;
     }
 
-    // 创建 EOF 令牌（便捷接口）
-    static std::shared_ptr<Token> create_eof(std::unique_ptr<FileInfo> file) {
-        auto file_ptr = file ? std::move(file) : create_default_file_info();
-        return create(TokenKind::TK_EOF, "", 0, std::move(file_ptr));
+    // 创建 EOF 令牌（便捷接口，参数支持shared_ptr）
+    static std::shared_ptr<Token> create_eof(const FileInfoPtr &file = nullptr) {
+        return create(TokenKind::TK_EOF, "", 0, file ? file : create_default_file_info());
     }
 
-    // 复制令牌（线程安全复制 hideset）
+    // 复制令牌（线程安全复制hideset，file直接共享无需深拷贝）
     std::shared_ptr<Token> copy() const {
         std::shared_ptr<Token> new_token(new Token());
         new_token->kind = this->kind;
         new_token->raw_chars = this->raw_chars;
         new_token->length = this->length;
-        new_token->type = this->type;
+        new_token->type = this->type; // TypePtr是shared_ptr，直接共享
         new_token->string_value = this->string_value;
         new_token->value = this->value;
-        new_token->file = this->file ? std::make_unique<FileInfo>(*this->file) : create_default_file_info();
-        new_token->next = nullptr;
+        new_token->file = this->file; // file是shared_ptr，直接共享（无需复制FileInfo内容）
+        new_token->next = nullptr;    // 拷贝不包含链表，保持独立
 
-        // 线程安全复制 hideset（读共享锁）
+        // 线程安全复制hideset（读共享锁）
         std::shared_lock<std::shared_mutex> lock(hideset_mutex_);
         new_token->hideset = this->hideset;
         return new_token;
     }
 
-    // 判断是否为 # 令牌（便携接口）
+    // 判断是否为 # 令牌
     bool is_hash() const { return this->kind == TokenKind::TK_HASH; }
 
     // 判断标识符是否匹配目标字符串
@@ -202,12 +206,12 @@ public:
         return this->raw_chars.substr(0, this->length) == target;
     }
 
-    // 获取文件信息（返回原始指针，避免所有权传递）
+    // 获取文件信息（返回原始指针，不传递所有权）
     const FileInfo *get_file() const {
-        return file ? file.get() : get_default_file_info_singleton();
+        return file ? file.get() : get_default_file_singleton().get();
     }
 
-    // 线程安全添加宏（写独占锁）
+    // 线程安全添加宏到隐藏集
     void add_hideset(const HideSet &hide_set) {
         std::unique_lock<std::shared_mutex> lock(this->hideset_mutex_);
         for (const auto &name: hide_set) {
@@ -215,7 +219,7 @@ public:
         }
     }
 
-    // 线程安全检查宏是否在隐藏集里面（读共享锁）
+    // 线程安全检查宏是否在隐藏集
     bool is_in_hideset(const std::string &name) const {
         std::shared_lock<std::shared_mutex> lock(this->hideset_mutex_);
         return this->hideset.count(name) > 0;
@@ -243,26 +247,21 @@ public:
     ~Token() = default;
 
 private:
-    // 保护 hideset 的读写锁
-    mutable std::shared_mutex hideset_mutex_;
+    mutable std::shared_mutex hideset_mutex_; // 保护hideset的读写锁
 
-    // 单例默认文件信息（使用unique_ptr确保唯一所有权）
+    // 单例默认文件信息（内部用unique_ptr确保唯一所有权，对外提供shared）
     static std::unique_ptr<FileInfo> &get_default_file_singleton() {
         static auto instance = std::make_unique<FileInfo>("", "unknown", 0, 0);
-        return instance;
+        return instance; // 保留unique_ptr管理单例生命周期
     }
 
-    // 创建默认文件信息（返回unique_ptr）
-    static std::unique_ptr<FileInfo> create_default_file_info() {
-        return std::make_unique<FileInfo>(*get_default_file_singleton());
+    // 创建默认文件信息（返回shared_ptr，共享单例的拷贝）
+    static FileInfoPtr create_default_file_info() {
+        // 复制单例内容到新的shared_ptr，避免外部直接修改单例
+        return std::make_shared<FileInfo>(*get_default_file_singleton());
     }
 
-    // 获取默认文件信息单例指针
-    static const FileInfo *get_default_file_info_singleton() {
-        return get_default_file_singleton().get();
-    }
-
-    // 构造函数私有，确保只能通过静态create方法创建实例
+    // 构造函数私有，确保通过create方法创建
     Token() : kind(TokenKind::TK_EOF), length(0), value(0), next(nullptr) {}
 };
 }

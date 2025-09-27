@@ -75,26 +75,27 @@ TEST(TokenTest, CreateEofToken) {
 
 // 测试 token 的复制功能
 TEST(TokenTest, CopyToken) {
-    auto file = std::make_unique<FileInfo>("copy.cpp", "copy.cpp", 2, 8);
-    const auto original = Token::create(TokenKind::TK_NUM, "123", 3, std::move(file));
+    // 1. 使用shared_ptr创建FileInfo（与Token类保持一致）
+    const auto file = std::make_shared<FileInfo>("copy.cpp", "copy.cpp", 2, 8);
+    const auto original = Token::create(TokenKind::TK_NUM, "123", 3, file); // 直接传递shared_ptr
     original->value = 123;
     original->string_value = "original_str";
     original->add_hideset({"MACRO1", "MACRO2"});
 
     const auto copied = original->copy();
 
-    // 验证基本属性复制
+    // 验证基本属性复制（保持不变）
     EXPECT_EQ(copied->kind, original->kind);
     EXPECT_EQ(copied->raw_chars, original->raw_chars);
     EXPECT_EQ(copied->length, original->length);
     EXPECT_EQ(copied->value, original->value);
     EXPECT_EQ(copied->string_value, original->string_value);
 
-    // 验证文件信息复制（应为深拷贝）
-    EXPECT_NE(copied->get_file(), original->get_file());
-    EXPECT_EQ(copied->get_file()->display_name, original->get_file()->display_name);
+    // 验证文件信息共享（关键修改：shared_ptr共享同一对象，指针应相同）
+    EXPECT_EQ(copied->get_file(), original->get_file());                             // 从NE改为EQ
+    EXPECT_EQ(copied->get_file()->display_name, original->get_file()->display_name); // 内容仍需一致
 
-    // 验证hideset复制
+    // 验证hideset复制（保持不变，hideset是深拷贝）
     EXPECT_TRUE(copied->is_in_hideset("MACRO1"));
     EXPECT_TRUE(copied->is_in_hideset("MACRO2"));
     EXPECT_FALSE(copied->is_in_hideset("MACRO3"));
@@ -449,14 +450,14 @@ TEST(ErrorHandlerAdvancedTest, EnsureAllErrorCodesRegistered_CPP17) {
 // 这个测试用例暂时不好说，这里处于功能设计角度暂时留着这个
 TEST(TokenAdvancedTest, DeepCopyComplexToken) {
     // 测试包含嵌套数据的Token拷贝（验证深拷贝完整性）
-    // 1. 创建原始Token并初始化复杂数据
-    auto file = std::make_unique<FileInfo>("complex.cpp", "complex.cpp", 5, 100);
+    // 1. 创建原始Token并初始化复杂数据（使用shared_ptr）
+    const auto file = std::make_shared<FileInfo>("complex.cpp", "complex.cpp", 5, 100);
     file->line_offset = 50; // 修改行偏移
 
-    const auto original = Token::create(TokenKind::TK_STR, "\"complex\"", 9, std::move(file));
+    const auto original = Token::create(TokenKind::TK_STR, "\"complex\"", 9, file); // 传递shared_ptr
     original->string_value = "deep_copy_test";
     original->value = 0xDEADBEEF;
-    original->type = Type::create_basic(TypeKind::TY_STR, 16); // 字符串类型
+    original->type = Type::create_basic(TypeKind::TY_STR, 16); // 字符串类型（TypePtr是shared_ptr）
     original->add_hideset({"COPY_MACRO1", "COPY_MACRO2", "COPY_MACRO3"});
     // 构建令牌链表（next指针链）
     original->next = Token::create(TokenKind::TK_NUM, "12345", 5, nullptr);
@@ -465,30 +466,30 @@ TEST(TokenAdvancedTest, DeepCopyComplexToken) {
     // 2. 拷贝Token
     const auto copied = original->copy();
 
-    // 3. 验证基础属性拷贝
+    // 3. 验证基础属性拷贝（保持不变）
     EXPECT_EQ(copied->kind, original->kind);
     EXPECT_EQ(copied->string_value, original->string_value);
     EXPECT_EQ(copied->value, original->value);
-    EXPECT_EQ(copied->type->kind_, original->type->kind_);
+    EXPECT_EQ(copied->type->kind_, original->type->kind_); // type共享，属性一致
 
-    // 4. 验证hideset完全拷贝
+    // 4. 验证hideset完全拷贝（保持不变）
     EXPECT_TRUE(copied->is_in_hideset("COPY_MACRO1"));
     EXPECT_TRUE(copied->is_in_hideset("COPY_MACRO2"));
     EXPECT_TRUE(copied->is_in_hideset("COPY_MACRO3"));
 
-    // 5. 验证文件信息深拷贝（指针不同但内容相同）
-    EXPECT_NE(copied->get_file(), original->get_file());
+    // 5. 验证文件信息共享（关键修改：shared_ptr指向同一对象）
+    EXPECT_EQ(copied->get_file(), original->get_file()); // 从NE改为EQ
     EXPECT_EQ(copied->get_file()->display_name, original->get_file()->display_name);
-    EXPECT_EQ(copied->get_file()->line_number + copied->get_file()->line_offset, 100 + 50); // 150
-    //TODO: 这里功能的话目前暂时没有做这个，之后完善代码之后考虑一下
-    // // 6. 验证链表结构拷贝（确保next指针链独立）
-    // EXPECT_NE(copied->next, original->next); // 指针不同
+    EXPECT_EQ(copied->get_file()->line_number + copied->get_file()->line_offset, 100 + 50); // 内容仍需一致
+
+    // 6. 验证链表结构拷贝（保持注释，待实现后启用）
+    // EXPECT_NE(copied->next, original->next); // 指针不同（next是新创建的Token）
     // EXPECT_EQ(copied->next->kind, original->next->kind);
     // EXPECT_EQ(copied->next->next->kind, TokenKind::TK_EOF);
     //
     // // 7. 修改原始Token的链表，验证拷贝不受影响
     // original->next->kind = TokenKind::TK_PLUS;
-    // EXPECT_NE(copied->next->kind, TokenKind::TK_PLUS); // 拷贝的链表未被修改
+    // EXPECT_NE(copied->next->kind, TokenKind::TK_PLUS);
 }
 
 // -------------- 边界条件测试 --------------
