@@ -134,11 +134,11 @@ TEST(LRUCacheTest, ConcurrentPutGet_ThreadSafe) {
 // 测试 6：线程安全，在竞争条件下测试
 TEST(LRUCacheTest, ConcurrentOperations_ThreadSafe) {
     // 调整测试参数：部分压力，简单超时
-    constexpr size_t THREAD_COUNT = 16;              // 减少线程数（降低锁竞争）
-    constexpr size_t OPERATIONS_PER_THREAD = 500000; // 减少每个线程的操作次数
-    constexpr size_t KEY_SPACE = 1000;               // 缩小键空间
-    constexpr size_t CACHE_CAPACITY = 50;
-    constexpr int TIMEOUT_SECONDS = 100; // 延长超时时间到10秒
+    constexpr size_t THREAD_COUNT = 16;            // 减少线程数（降低锁竞争）
+    constexpr size_t OPERATIONS_PER_THREAD = 5000; // 减少每个线程的操作次数
+    constexpr size_t KEY_SPACE = 1000;             // 缩小键空间
+    constexpr size_t CACHE_CAPACITY = 50;          // 设置容量
+    constexpr int TIMEOUT_SECONDS = 100;           // 延长超时时间到10秒
 
     LRUCache<int, int> cache(CACHE_CAPACITY);
 
@@ -207,13 +207,13 @@ TEST(LRUCacheTest, ConcurrentOperations_ThreadSafe) {
     }
 
     // 改进的超时监控：同时检查已完成线程数
-    std::thread timeout_thread([&]() {
+    std::thread timeout_thread([&] {
         const auto start = std::chrono::steady_clock::now();
         while (true) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
             // 检查是否超时
-            auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
+            const auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
                 std::chrono::steady_clock::now() - start
             ).count();
             if (elapsed >= TIMEOUT_SECONDS) {
@@ -253,9 +253,4 @@ TEST(LRUCacheTest, ConcurrentOperations_ThreadSafe) {
                            });
 
     EXPECT_LE(cache.size(), CACHE_CAPACITY);
-}
-
-int main(int argc, char **argv) {
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
 }

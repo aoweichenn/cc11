@@ -14,11 +14,13 @@ include_directories(include)
 add_library(cc11s STATIC
         main.cpp
         include/prepro/lru_cache.hpp
+        include/prepro/basic_types.hpp
 )
 
 add_executable(cc11
         main.cpp
         include/prepro/lru_cache.hpp
+        include/prepro/basic_types.hpp
 )
 target_link_libraries(cc11 cc11s)
 
@@ -33,7 +35,9 @@ endif ()
 
 # 3. 编译测试文件
 file(GLOB_RECURSE TEST_SOURCES tests/*.cpp)
-add_executable(cc11_tests ${TEST_SOURCES})
+add_executable(cc11_tests ${TEST_SOURCES}
+        tests/prepro/test_basic_types.cpp
+        tests/main/test_main.cpp)
 # 链接测试库
 target_link_libraries(cc11_tests
         cc11s
